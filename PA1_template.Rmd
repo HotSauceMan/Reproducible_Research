@@ -1,0 +1,130 @@
+```{r}
+library(knitr)
+library(ggplot2)
+library(data.table)
+echo=TRUE
+opts_chunk$set(echo = TRUE, results = 'hold')
+```
+
+```{r}
+activity <- unzip("activity.zip")
+actual_data <- read.csv("activity.csv", header=TRUE, sep=",")
+str(actual_data)
+```
+
+```{r}
+actual_data$date <- as.Date(actual_data$date, format="%Y-%m-%d")
+actual_data$interval <- as.factor(actual_data$interval)
+str(actual_data)
+```
+
+```{r}
+head(actual_data,10)
+```
+
+Here is the total number of steps taken per day:
+```{r}
+steps_day <- aggregate(steps ~ date, data=actual_data, FUN=sum)
+colnames(steps_day) <- c("date", "steps")
+head(steps_day)
+```
+
+```{r}
+ggplot(steps_day, aes(x = steps)) + 
+  geom_histogram(fill = "orange", binwidth = 1000) + 
+  labs(title = "Histogram - Steps Taken Per Day", x = "Steps Per Day", y = "Frequency")
+```
+
+```{r}
+mean_steps_day <- mean(steps_day$steps)
+mean_steps_day
+median_steps_day <- median(steps_day$steps)
+median_steps_day
+```
+
+
+```{r}
+steps_interval <- aggregate(steps ~ interval, data = actual_data, FUN = mean, na.rm = TRUE)
+steps_interval$interval <- as.integer(levels(steps_interval$interval)[steps_interval$interval])
+colnames(steps_interval) <- c("interval", "steps")
+```
+
+```{r}
+ggplot(steps_interval, aes(x = interval, y = steps)) + 
+  geom_line(col = "green", size = 1) + 
+  labs(title = "Average Daily Activity Pattern", x = "Interval", y = "Steps")
+```
+
+```{r}
+max_int <- steps_interval[which.max(steps_interval$steps),]
+max_int
+```
+
+```{r}
+missing_value <- sum(is.na(actual_data$steps))
+missing_value
+```
+
+```{r}
+new_actual_data <- actual_data
+index_of_na <- which(is.na(new_actual_data$steps))
+for (i in index_of_na) {
+  new_actual_data$steps[i] <- with(steps_interval, steps[interval = new_actual_data$interval[i]])
+}
+head(new_actual_data, 10)
+new_missing_values <- sum(is.na(new_actual_data$steps))
+new_missing_values
+```
+
+```{r}
+new_steps_day <- aggregate(steps ~ date, data = new_actual_data, FUN=sum)
+colnames(new_steps_day) <- c("date", "steps")
+ggplot(new_steps_day, aes(x = steps)) + 
+  geom_histogram(fill = "red", binwidth = 1000) + 
+  labs(title = "Histogram - Steps Taken Per Day", x = "Steps Per Day", y = "Frequency")
+```
+
+```{r}
+new_mean_steps_day <- mean(new_steps_day$steps)
+new_mean_steps_day
+new_median_steps_day <- median(new_steps_day$steps)
+new_median_steps_day
+```
+
+```{r}
+d <- data.table(new_actual_data)
+d[, weekday := ifelse(weekdays(date) %in% c("Saturday", "Sunday"), "Weekend", "Weekday")]
+d$weekday <- as.factor(d$weekday)
+d$interval <- as.integer(levels(d$interval)[d$interval])
+head(d, 10)
+```
+
+```{r}
+steps_weekday <- aggregate(steps ~ interval+weekday, data = d, FUN = mean)
+ggplot(steps_weekday, aes(x = interval, y = steps)) + 
+  geom_line(col = "red", size = 1) + 
+  facet_wrap(~ weekday, nrow=2, ncol=1) + 
+  labs(x = "Interval", y = "Number of Steps")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
